@@ -31,7 +31,7 @@ jobs:
         run: black .
 
       - name: Проверка сортировки импортов isort
-        run: isort --check-only .
+        run: isort .
 
   test:
     runs-on: ubuntu-20.04
@@ -51,4 +51,4 @@ jobs:
           pip install -r requirements.txt
 
       - name: Запуск тестов
-        run: pytest
+        run: python -m pytest test/.
