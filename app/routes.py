@@ -7,7 +7,7 @@ from .core.compare_melodies import compare_melodies
 
 router = APIRouter()
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(threadName)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(threadName)s - %(levelname)s - %(message)s')    
 
 @router.post("/compare_melodies/")
 async def compare_melodies_endpoint(
