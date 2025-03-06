@@ -6,10 +6,11 @@ import datetime
 from typing import Optional
 from fastapi.security import OAuth2PasswordBearer
 import bcrypt
+import os
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-SECRET_KEY = "your_secret_key"
+SECRET_KEY = os.getenv("jwt_secret_key")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
