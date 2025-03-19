@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BrassBook API Documentation</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        .endpoint {
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .endpoint-header {
+            background: #f6f8fa;
+            padding: 10px 20px;
+            border-bottom: 1px solid #e1e4e8;
+        }
+        .method {
+            background: #49cc90;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .path {
+            font-family: monospace;
+            font-size: 16px;
+            margin-left: 10px;
+        }
+        .content {
+            padding: 20px;
+        }
+        .section {
+            margin: 15px 0;
+        }
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        th, td {
+            text-align: left;
+            padding: 8px;
+            border: 1px solid #e1e4e8;
+        }
+        th {
+            background: #f6f8fa;
+        }
+        .response-example {
+            background: #272b33;
+            color: #fff;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            overflow-x: auto;
+        }
+        .curl-example {
+            background: #272b33;
+            color: #fff;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>BrassBook API Documentation</h1>
+    
+    <div class="endpoint">
+        <div class="endpoint-header">
+            <span class="method">POST</span>
+            <span class="path">/compare_melodies/</span>
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <div class="section-title">Описание</div>
+                <p>Эндпоинт для сравнения двух мелодий. Анализирует и сравнивает две аудиозаписи, возвращая различные метрики схожести между ними.</p>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Параметры запроса</div>
+                <table>
+                    <tr>
+                        <th>Имя</th>
+                        <th>Тип</th>
+                        <th>Обязательный</th>
+                        <th>Описание</th>
+                    </tr>
+                    <tr>
+                        <td>file1</td>
+                        <td>file (binary)</td>
+                        <td>Да</td>
+                        <td>Первый аудиофайл (эталонная мелодия учителя)</td>
+                    </tr>
+                    <tr>
+                        <td>file2</td>
+                        <td>file (binary)</td>
+                        <td>Да</td>
+                        <td>Второй аудиофайл (мелодия ученика для сравнения)</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Поддерживаемые форматы</div>
+                <ul>
+                    <li>WAV</li>
+                    <li>MP3</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Ответ в случае успеха (200 OK)</div>
+                <div class="response-example">
+{
+    "result": [
+        0.85,                    // integral_indicator: общий показатель схожести (от 0 до 1)
+        [0, 1, 0, 0],           // rhythm: массив ошибок ритма (0 - совпадение, 1 - ошибка)
+        [0, 0, 1, 0],           // height: массив ошибок высоты нот (0 - совпадение, 1 - ошибка)
+        [0, 0, 0, 1],           // volume: массив ошибок громкости (0 - совпадение, 1 - ошибка)
+        [0.5, 0.7, 0.3, 0.8]    // average: массив средней громкости
+    ]
+}
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Ответ в случае ошибки</div>
+                <div class="response-example">
+{
+    "error": "Описание ошибки"
+}
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Пример запроса (CURL)</div>
+                <div class="curl-example">
+curl -X POST "http://localhost:8000/compare_melodies/" \
+     -H "accept: application/json" \
+     -H "Content-Type: multipart/form-data" \
+     -F "file1=@teacher_melody.wav;type=audio/wav" \
+     -F "file2=@student_melody.wav;type=audio/wav"
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Примечания</div>
+                <ul>
+                    <li>Рекомендуемая длительность аудиофайлов: до 60 секунд</li>
+                    <li>Файлы должны содержать запись одной мелодии</li>
+                    <li>Для получения наилучших результатов рекомендуется использовать файлы с хорошим качеством записи</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 
