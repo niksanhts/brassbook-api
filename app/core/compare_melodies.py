@@ -1,10 +1,11 @@
+import io
 import logging
 from math import floor
-from typing import Tuple, List, Optional
+from typing import List, Optional, Tuple
 
-import io
 import librosa
 import numpy as np
+
 
 class AudioConfig:
     N_MELS = 64
@@ -15,9 +16,14 @@ class AudioConfig:
     RHYTHM_THRESHOLD = 0.25
 
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
-def compare_melodies(file1: bytes, file2: bytes) -> Optional[Tuple[float, List[int], List[int], List[int], List[float]]]:
+
+def compare_melodies(
+    file1: bytes, file2: bytes
+) -> Optional[Tuple[float, List[int], List[int], List[int], List[float]]]:
     """Сравнивает две мелодии и возвращает их характеристики."""
     logging.info("Начало сравнения мелодий")
     try:
@@ -38,8 +44,10 @@ def compare_melodies(file1: bytes, file2: bytes) -> Optional[Tuple[float, List[i
             teacher_melody, children_melody, min_per_t, min_per_c
         )
 
-        teacher_melody, children_melody, freq_t, freq_c, t_m, c_m = compare_melody_sequences(
-            all_t, all_c, freq_t, freq_c, t_m, c_m, teacher_melody, children_melody
+        teacher_melody, children_melody, freq_t, freq_c, t_m, c_m = (
+            compare_melody_sequences(
+                all_t, all_c, freq_t, freq_c, t_m, c_m, teacher_melody, children_melody
+            )
         )
 
         result = compare(t_m, c_m, freq_t, freq_c, teacher_melody, children_melody, 2)
@@ -60,7 +68,9 @@ def compare_melodies(file1: bytes, file2: bytes) -> Optional[Tuple[float, List[i
         return None
 
 
-def extract_melody_from_audio(file_bytes: bytes) -> Tuple[Optional[List[float]], Optional[float]]:
+def extract_melody_from_audio(
+    file_bytes: bytes,
+) -> Tuple[Optional[List[float]], Optional[float]]:
     """Извлекает мелодию из аудиофайла."""
     logging.info("Начало извлечения мелодии из аудиофайла")
     try:
@@ -71,12 +81,16 @@ def extract_melody_from_audio(file_bytes: bytes) -> Tuple[Optional[List[float]],
         logging.debug("Аудиофайл загружен: длина %d, частота %d", len(tm), srt)
 
         tmt, _ = librosa.effects.trim(tm, top_db=AudioConfig.TRIM_DB)
-        tmt_mel = librosa.feature.melspectrogram(y=tmt, sr=srt, n_mels=AudioConfig.N_MELS)
+        tmt_mel = librosa.feature.melspectrogram(
+            y=tmt, sr=srt, n_mels=AudioConfig.N_MELS
+        )
         tmt_db_mel = librosa.amplitude_to_db(tmt_mel)[AudioConfig.FREQ_BANDS]
         tmt_db_mel_transposed = np.transpose(tmt_db_mel)
 
         time_t = librosa.get_duration(y=tmt, sr=srt)
-        min_per_t = round(len(tmt_db_mel_transposed)) / (time_t * AudioConfig.TIME_FACTOR)
+        min_per_t = round(len(tmt_db_mel_transposed)) / (
+            time_t * AudioConfig.TIME_FACTOR
+        )
 
         mask = np.all(tmt_db_mel_transposed < 0, axis=1)
         max_indices = np.argmax(tmt_db_mel_transposed[~mask], axis=1)
@@ -86,7 +100,9 @@ def extract_melody_from_audio(file_bytes: bytes) -> Tuple[Optional[List[float]],
         nonzero_indices = np.where(~mask)[0]
         result[nonzero_indices] = max_indices + (np.round(max_values) / 100)
 
-        logging.info("Извлечение мелодии завершено, найдено %d нот", len(nonzero_indices))
+        logging.info(
+            "Извлечение мелодии завершено, найдено %d нот", len(nonzero_indices)
+        )
         return result.tolist(), min_per_t
 
     except ValueError as ve:
@@ -101,7 +117,10 @@ def extract_melody_from_audio(file_bytes: bytes) -> Tuple[Optional[List[float]],
 
 
 def synchronize_melodies(
-    teacher_melody: List[float], children_melody: List[float], min_per_t: float, min_per_c: float
+    teacher_melody: List[float],
+    children_melody: List[float],
+    min_per_t: float,
+    min_per_c: float,
 ) -> Tuple[List[float], List[float], List[int], List[int], List[int], List[int]]:
     """Синхронизирует две мелодии."""
     logging.info("Начало синхронизации мелодий")
@@ -114,7 +133,9 @@ def synchronize_melodies(
         return [], [], [], [], [], []
 
 
-def extract_notes(melody: List[float], min_per: float) -> Tuple[List[float], List[int], List[int]]:
+def extract_notes(
+    melody: List[float], min_per: float
+) -> Tuple[List[float], List[int], List[int]]:
     """Извлекает ноты из мелодии."""
     logging.debug("Начало извлечения нот")
     counter = 0
@@ -140,8 +161,14 @@ def extract_notes(melody: List[float], min_per: float) -> Tuple[List[float], Lis
 
 
 def compare_melody_sequences(
-    all_t: List[float], all_c: List[float], freq_t: List[int], freq_c: List[int],
-    t_m: List[int], c_m: List[int], teacher_melody: List[float], children_melody: List[float]
+    all_t: List[float],
+    all_c: List[float],
+    freq_t: List[int],
+    freq_c: List[int],
+    t_m: List[int],
+    c_m: List[int],
+    teacher_melody: List[float],
+    children_melody: List[float],
 ) -> Tuple[List[float], List[float], List[int], List[int], List[int], List[int]]:
     """Сравнивает последовательности нот."""
     logging.info("Начало проверки последовательностей нот")
@@ -150,9 +177,9 @@ def compare_melody_sequences(
     try:
         if len(all_t) != len(all_c):
             for i in range(min(len(all_t), len(all_c)) - 3):
-                if all_c[i] != all_t[i] and all_c[i + 1:i + 3] == all_t[i:i + 2]:
+                if all_c[i] != all_t[i] and all_c[i + 1 : i + 3] == all_t[i : i + 2]:
                     exec_c.append(i + all_c[i] % 1)
-                elif all_c[i] != all_t[i] and all_c[i:i + 2] == all_t[i + 1:i + 3]:
+                elif all_c[i] != all_t[i] and all_c[i : i + 2] == all_t[i + 1 : i + 3]:
                     exec_t.append(i + all_t[i] % 1)
 
         for idx in exec_c:
@@ -165,7 +192,9 @@ def compare_melody_sequences(
             c_m.insert(idx, 1)
             freq_c.insert(idx, 6)
 
-        teacher_melody, children_melody = extend_to_max_length(teacher_melody, children_melody, 0.0)
+        teacher_melody, children_melody = extend_to_max_length(
+            teacher_melody, children_melody, 0.0
+        )
         freq_t, freq_c = extend_to_max_length(freq_t, freq_c, 0)
         t_m, c_m = extend_to_max_length(t_m, c_m, 1)
 
@@ -175,7 +204,9 @@ def compare_melody_sequences(
         return teacher_melody, children_melody, freq_t, freq_c, t_m, c_m
 
 
-def extend_to_max_length(list1: List, list2: List, fill_value: float) -> Tuple[List, List]:
+def extend_to_max_length(
+    list1: List, list2: List, fill_value: float
+) -> Tuple[List, List]:
     """Расширяет списки до одинаковой максимальной длины."""
     max_length = max(len(list1), len(list2))
     list1.extend([fill_value] * (max_length - len(list1)))
@@ -188,14 +219,23 @@ def normalize_melody(melody: List[float]) -> List[int]:
     return [round((y % 1) * 100) for y in melody]
 
 
-def calculate_loudness(t_m: List[int], c_m: List[int], teacher_melody: List[int], children_melody: List[int]) -> List[int]:
+def calculate_loudness(
+    t_m: List[int],
+    c_m: List[int],
+    teacher_melody: List[int],
+    children_melody: List[int],
+) -> List[int]:
     """Вычисляет метрику громкости."""
     res_loud = []
     counter_t, counter_c = 0, 0
     for i in range(len(t_m)):
-        t_sum = sum(teacher_melody[counter_t:counter_t + t_m[i]])
-        c_sum = sum(children_melody[counter_c:counter_c + c_m[i]])
-        if t_sum != 0 and abs(1 - (c_sum / c_m[i]) / (t_sum / t_m[i])) <= AudioConfig.LOUDNESS_THRESHOLD:
+        t_sum = sum(teacher_melody[counter_t : counter_t + t_m[i]])
+        c_sum = sum(children_melody[counter_c : counter_c + c_m[i]])
+        if (
+            t_sum != 0
+            and abs(1 - (c_sum / c_m[i]) / (t_sum / t_m[i]))
+            <= AudioConfig.LOUDNESS_THRESHOLD
+        ):
             res_loud.extend([0] * c_m[i])
         else:
             res_loud.extend([1] * c_m[i])
@@ -215,7 +255,9 @@ def calculate_rhythm(t_m: List[int], c_m: List[int]) -> List[int]:
     return res_rhythm
 
 
-def calculate_frequency(freq_t: List[int], freq_c: List[int], c_m: List[int]) -> List[int]:
+def calculate_frequency(
+    freq_t: List[int], freq_c: List[int], c_m: List[int]
+) -> List[int]:
     """Вычисляет метрику частоты."""
     res_frequency = []
     for i in range(len(freq_t)):
@@ -238,8 +280,13 @@ def calculate_integral_indicator(total_errors: List[int]) -> float:
 
 
 def compare(
-    t_m: List[int], c_m: List[int], freq_t: List[int], freq_c: List[int],
-    teacher_melody: List[float], children_melody: List[float], time_c: float
+    t_m: List[int],
+    c_m: List[int],
+    freq_t: List[int],
+    freq_c: List[int],
+    teacher_melody: List[float],
+    children_melody: List[float],
+    time_c: float,
 ) -> Tuple[float, List[int], List[int], List[int], List[float]]:
     """Сравнивает мелодии и возвращает метрики."""
     logging.info("Начало финального сравнения мелодий")
@@ -280,14 +327,16 @@ def process_characteristics(x: List[int], time: float) -> List[int]:
 
         while len(x) >= count_of_values:
             c = sum(x[:count_of_values]) / count_of_values
-            y.append(1 if c > 0.5 else 0)  
+            y.append(1 if c > 0.5 else 0)
             x = x[count_of_values:]
 
         if x:
             c = sum(x) / len(x)
             y.append(1 if c > 0.5 else 0)
 
-        logging.debug("Обработка характеристик завершена, результат: %d значений", len(y))
+        logging.debug(
+            "Обработка характеристик завершена, результат: %d значений", len(y)
+        )
         return y
     except Exception as e:
         logging.error("Ошибка в process_characteristics: %s", str(e))

@@ -1,19 +1,29 @@
-import unittest
-import numpy as np
-from typing import Tuple, List, Optional
-import logging
 import io
-import soundfile as sf
-import tempfile
+import logging
 import os
+import tempfile
+import unittest
+from typing import List, Optional, Tuple
+
+import numpy as np
+import soundfile as sf
+
 from app.core.compare_melodies import (
-    compare_melodies, synchronize_melodies,
-    compare_melody_sequences, normalize_melody, calculate_loudness,
-    calculate_rhythm, calculate_frequency, calculate_average_volume,
-    calculate_integral_indicator, process_characteristics, extend_to_max_length,
+    calculate_average_volume,
+    calculate_frequency,
+    calculate_integral_indicator,
+    calculate_loudness,
+    calculate_rhythm,
+    compare_melodies,
+    compare_melody_sequences,
+    extend_to_max_length,
+    normalize_melody,
+    process_characteristics,
+    synchronize_melodies,
 )
 
 logging.basicConfig(level=logging.DEBUG)
+
 
 class TestMelodyComparison(unittest.TestCase):
 
@@ -21,16 +31,21 @@ class TestMelodyComparison(unittest.TestCase):
         self.sample_rate = 22050
         self.duration = 1.0
         self.silence = np.zeros(int(self.sample_rate * self.duration))
-        self.sine_wave = 0.5 * np.sin(2 * np.pi * 440 * np.linspace(0, self.duration, int(self.sample_rate * self.duration)))
-        
+        self.sine_wave = 0.5 * np.sin(
+            2
+            * np.pi
+            * 440
+            * np.linspace(0, self.duration, int(self.sample_rate * self.duration))
+        )
+
         self.silence_bytes = self._audio_to_bytes(self.silence, self.sample_rate)
         self.sine_bytes = self._audio_to_bytes(self.sine_wave, self.sample_rate)
 
     def _audio_to_bytes(self, audio: np.ndarray, sr: int) -> bytes:
         """Конвертирует numpy массив в bytes для тестов."""
-        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp:
-            sf.write(tmp.name, audio, sr, format='WAV', subtype='PCM_16')
-            with open(tmp.name, 'rb') as f:
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+            sf.write(tmp.name, audio, sr, format="WAV", subtype="PCM_16")
+            with open(tmp.name, "rb") as f:
                 data = f.read()
         os.remove(tmp.name)
         print("Размер записанных байтов:", len(data))
@@ -39,14 +54,16 @@ class TestMelodyComparison(unittest.TestCase):
     def test_compare_melodies_invalid_input(self):
         result = compare_melodies(None, self.sine_bytes)
         self.assertIsNone(result)
-        
+
         result = compare_melodies(b"", self.sine_bytes)
         self.assertIsNone(result)
 
     def test_synchronize_melodies(self):
         teacher_melody = [1.0, 1.0, 2.0, 3.0]
         children_melody = [1.0, 1.0, 2.0, 3.0]
-        all_t, all_c, freq_t, freq_c, t_m, c_m = synchronize_melodies(teacher_melody, children_melody, 1, 1)
+        all_t, all_c, freq_t, freq_c, t_m, c_m = synchronize_melodies(
+            teacher_melody, children_melody, 1, 1
+        )
         self.assertEqual(len(all_t), len(all_c))
         self.assertEqual(len(freq_t), len(freq_c))
         self.assertEqual(len(t_m), len(c_m))
@@ -60,7 +77,9 @@ class TestMelodyComparison(unittest.TestCase):
         c_m = [1, 1, 1]
         teacher_m = [1.0, 2.0, 3.0]
         children_m = [1.0, 2.0, 3.0]
-        result = compare_melody_sequences(all_t, all_c, freq_t, freq_c, t_m, c_m, teacher_m, children_m)
+        result = compare_melody_sequences(
+            all_t, all_c, freq_t, freq_c, t_m, c_m, teacher_m, children_m
+        )
         self.assertEqual(len(result), 6)
         t_mel, c_mel, f_t, f_c, t_m_new, c_m_new = result
         self.assertEqual(len(t_mel), len(c_mel))
