@@ -6,7 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.core.auth import verify_password
 from app.dependencies import get_user_repo
 from app.core.compare_melodies import compare_melodies
 from app.config import settings
@@ -102,7 +102,7 @@ async def update_user_password(
 ):
     """Обновление пароля пользователя"""
     user = await repo.get_user_by_email(current_user.email)
-    if not user or not user.verify_password(password_data.current_password):
+    if not user or not verify_password(password_data.current_password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Текущий пароль неверен",
@@ -259,7 +259,7 @@ async def update_user_password(
 ):
     """Обновление пароля пользователя"""
     user = await repo.get_user_by_email(current_user.email)
-    if not user or not user.verify_password(password_data.current_password):
+    if not user or not verify_password(password_data.current_password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Текущий пароль неверен",

@@ -11,7 +11,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     name = Column(String, nullable=True)
     surname = Column(String, nullable=True)
-    photo_url = Column(
+    avatar_url = Column(
         String, nullable=True
     )  # Путь к фото в MinIO (формат: 'photos/avatars/{user_id}.png')
 
