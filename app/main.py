@@ -7,6 +7,7 @@ from app.api.routes.compare_routes import compare_router
 from app.api.routes.user_routes import avatar_user_router, current_user_router
 from app.api.routes.legacy_router import router as legacy_router
 
+
 import logging
 
 logging.basicConfig(
@@ -21,6 +22,8 @@ app = FastAPI(root_path="/api")
 
 app.include_router(compare_router)
 app.include_router(legacy_router)
+app.include_router(avatar_user_router)
+app.include_router(current_user_router)
 
 app.add_middleware(
     CORSMiddleware,
