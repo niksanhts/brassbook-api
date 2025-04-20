@@ -1,15 +1,22 @@
-FROM python:3.9-slim
+FROM python:3.9-slim AS builder
+
 WORKDIR /app
 
-# Установка зависимостей
 COPY requirements.txt .
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends libmagic1 && \
-    pip install --no-cache-dir -r requirements.txt uvicorn && \
-    rm -rf /var/lib/apt/lists/*
+RUN python -m venv /venv
+RUN /venv/bin/pip install --upgrade pip
+RUN /venv/bin/pip install --no-cache-dir -r requirements.txt
 
-# Копируем приложение
+FROM python:3.9-slim
+
+WORKDIR /app
+COPY --from=builder /venv /venv
 COPY . .
 
+# Устанавливаем libmagic
+RUN apt-get update && apt-get install -y libmagic-dev
+
+ENV PATH="/venv/bin:$PATH"
+
 EXPOSE 8000
-ENTRYPOINT ["sh", "-c", "alembic revision --autogenerate && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,26 +1,20 @@
-import io
 import logging
 import os
 import tempfile
 import unittest
-from typing import List, Optional, Tuple
 
 import numpy as np
 import soundfile as sf
 
-from app.core.compare_melodies import (
-    calculate_average_volume,
-    calculate_frequency,
-    calculate_integral_indicator,
-    calculate_loudness,
-    calculate_rhythm,
-    compare_melodies,
-    compare_melody_sequences,
-    extend_to_max_length,
-    normalize_melody,
-    process_characteristics,
-    synchronize_melodies,
-)
+from app.core.compare_melodies import (calculate_average_volume,
+                                       calculate_frequency,
+                                       calculate_integral_indicator,
+                                       calculate_loudness, calculate_rhythm,
+                                       compare_melodies,
+                                       compare_melody_sequences,
+                                       extend_to_max_length, normalize_melody,
+                                       process_characteristics,
+                                       synchronize_melodies)
 
 logging.basicConfig(level=logging.DEBUG)
 

@@ -1,5 +1,6 @@
+from sqlalchemy import Boolean, Column, DateTime, Integer, String
+
 from app.data.database import Base
-from sqlalchemy import Boolean, Column, Integer, String
 
 
 class User(Base):
@@ -9,10 +10,11 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     is_active = Column(Boolean, default=True)
-    name = Column(String, nullable=True)
-    surname = Column(String, nullable=True)
-    avatar_url = Column(
+    code = Column(Integer)
+    code_date = Column(DateTime)
+    status = Column(String, default="pending")
+    first_name = Column(String, nullable=True)
+    second_name = Column(String, nullable=True)
+    photo_url = Column(
         String, nullable=True
     )  # Путь к фото в MinIO (формат: 'photos/avatars/{user_id}.png')
-
-
