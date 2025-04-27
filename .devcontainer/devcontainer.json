@@ -1,0 +1,38 @@
+{
+	"name": "App Development",
+	"dockerComposeFile": "../docker-compose.yml",
+	"service": "app",
+	"workspaceFolder": "/app",
+	
+	"forwardPorts": [
+	  8000,  // FastAPI
+	  9000,  // MinIO
+	  9001,  // MinIO Console
+	  5432,  // PostgreSQL
+	  80     // Nginx
+	],
+  
+	"extensions": [
+	  "ms-python.python",
+	  "ms-azuretools.vscode-docker",
+	  "editorconfig.editorconfig"
+	],
+  
+	"settings": {
+	  "python.pythonPath": "/venv/bin/python",
+	  "python.linting.enabled": true,
+	  "python.linting.pylintEnabled": true
+	},
+  
+	"postCreateCommand": "apt-get update && apt-get install -y libmagic-dev",
+	
+	"remoteUser": "root",
+
+	"containerEnv": {
+  		"POSTGRES_URL": "postgresql://postgres:postgres@postgres:5432/appdb",
+  		"MINIO_ENDPOINT": "minio:9000",
+  		"MINIO_ACCESS_KEY": "minioadmin",
+  		"MINIO_SECRET_KEY": "minioadmin"
+	}
+
+}

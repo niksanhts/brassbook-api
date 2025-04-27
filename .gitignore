@@ -173,3 +173,5 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 .vscode
+nginx/ssl/key.pem
+nginx/ssl/cert.pem

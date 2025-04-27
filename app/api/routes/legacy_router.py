@@ -377,9 +377,21 @@ def update_avatar(avatar: UploadFile, user: User, db: Session) -> User:
 
 
 @router.post("/auth/register", response_model=AuthResponse)
-def register_user(data: Register, db: Session = Depends(get_db)):
+def register_user(response: Response, data: Register, db: Session = Depends(get_db)):
     """Register a new user."""
-    return register(data, db)
+    register(data, db)
+    result = login(data, db)
+
+    response.set_cookie(
+        key="access_token",
+        value=result.access_token
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=result.refresh_token
+    )
+
+    return result
 
 
 @router.post("/auth/verify", response_model=dict)
