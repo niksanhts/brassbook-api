@@ -2,7 +2,7 @@ import io
 import logging
 from math import floor
 from typing import List, Optional, Tuple
-
+#from app.config import AudioConfig
 import librosa
 import numpy as np
 
@@ -68,6 +68,8 @@ def compare_melodies(
         return None
 
 
+
+
 def extract_melody_from_audio(
     file_bytes: bytes,
 ) -> Tuple[Optional[List[float]], Optional[float]]:
@@ -77,25 +79,38 @@ def extract_melody_from_audio(
         if not file_bytes:
             raise ValueError("Пустой файл")
 
-        tm, srt = librosa.load(io.BytesIO(file_bytes), sr=None)
+        # Создаем объект BytesIO из переданных байтов
+        audio_file = io.BytesIO(file_bytes)
+
+        # Попытка загрузить аудиофайл с использованием librosa
+        try:
+            tm, srt = librosa.load(audio_file, sr=None)
+        except librosa.util.exceptions.ParameterError as e:
+            logging.error("Ошибка при загрузке аудиофайла с librosa: %s", str(e))
+            raise ValueError("Невозможно загрузить аудиофайл")
+
         logging.debug("Аудиофайл загружен: длина %d, частота %d", len(tm), srt)
 
+        # Применяем обрезку на основе порога
         tmt, _ = librosa.effects.trim(tm, top_db=AudioConfig.TRIM_DB)
+
+        # Вычисляем мелспектрограмму
         tmt_mel = librosa.feature.melspectrogram(
             y=tmt, sr=srt, n_mels=AudioConfig.N_MELS
         )
         tmt_db_mel = librosa.amplitude_to_db(tmt_mel)[AudioConfig.FREQ_BANDS]
         tmt_db_mel_transposed = np.transpose(tmt_db_mel)
 
+        # Рассчитываем длительность и минимальную продолжительность времени для временного шага
         time_t = librosa.get_duration(y=tmt, sr=srt)
-        min_per_t = round(len(tmt_db_mel_transposed)) / (
-            time_t * AudioConfig.TIME_FACTOR
-        )
+        min_per_t = round(len(tmt_db_mel_transposed)) / (time_t * AudioConfig.TIME_FACTOR)
 
+        # Получаем индексы и значения максимума по спектрограмме
         mask = np.all(tmt_db_mel_transposed < 0, axis=1)
         max_indices = np.argmax(tmt_db_mel_transposed[~mask], axis=1)
         max_values = np.max(tmt_db_mel_transposed[~mask], axis=1)
 
+        # Формируем результат
         result = np.zeros(len(tmt_db_mel_transposed))
         nonzero_indices = np.where(~mask)[0]
         result[nonzero_indices] = max_indices + (np.round(max_values) / 100)
@@ -114,6 +129,7 @@ def extract_melody_from_audio(
     except Exception as e:
         logging.error("Ошибка в extract_melody_from_audio: %s", str(e))
         return None, None
+
 
 
 def synchronize_melodies(

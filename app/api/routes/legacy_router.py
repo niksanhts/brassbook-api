@@ -3,8 +3,10 @@ import random
 from datetime import datetime
 from typing import Optional
 
+from jsonschema import ValidationError
+
 from authx import RequestToken
-from fastapi import APIRouter, Body, Depends, File, Response, UploadFile, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, File, Response, UploadFile, HTTPException, Request, Cookie
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
@@ -25,6 +27,7 @@ minio_client = get_minio_client()
 router = APIRouter(prefix="/api/v1", tags=["legacy"])
 
 class Register(BaseModel):
+    role_name: str
     email: EmailStr
     password: str
 
@@ -120,16 +123,16 @@ def verify_user(data: VerifyUser, db: Session) -> dict:
     if not user:
         logger.warning("User not found: %s", data.email)
         raise HTTPException(status_code=404, detail="User not found")
-    if (datetime.utcnow() - user.code_date).total_seconds() > 15 * 60:
-        logger.warning("Verification code expired for user: %s", data.email)
-        raise HTTPException(status_code=400, detail="Code expired")
-    if str(user.code) == data.code:
-        user.status = "active"
-        db.commit()
-        logger.info("User verified successfully: %s", data.email)
-        return {"message": "User activated"}
-    logger.warning("Invalid verification code for user: %s", data.email)
-    raise HTTPException(status_code=400, detail="Invalid code")
+    #if (datetime.utcnow() - user.code_date).total_seconds() > 15 * 60:
+     #   logger.warning("Verification code expired for user: %s", data.email)
+      #  raise HTTPException(status_code=400, detail="Code expired")
+    #if str(user.code) == data.code:
+    user.status = "active"
+    db.commit()
+    logger.info("User verified successfully: %s", data.email)
+    return {"message": "User activated"}
+    #logger.warning("Invalid verification code for user: %s", data.email)
+    #raise HTTPException(status_code=400, detail="Invalid code")
 
 
 def send_code(data: SendCode, db: Session) -> dict:
@@ -376,25 +379,44 @@ def update_avatar(avatar: UploadFile, user: User, db: Session) -> User:
         raise HTTPException(status_code=500, detail="Failed to upload avatar")
 
 
-@router.post("/auth/register", response_model=AuthResponse)
-def register_user(response: Response, data: Register, db: Session = Depends(get_db)):
-    """Register a new user."""
+@router.post("/auth/registration", response_model=AuthResponse)
+async def register_user(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db)
+):
+    content_type = request.headers.get("Content-Type", "")
+
+    logger.info("----[XYI]----")  
+
+    if "application/json" in content_type:
+        try:
+            data = Register(**await request.json())
+        except ValidationError as e:
+            return JSONResponse(status_code=422, content={"detail": e.errors()})
+    elif "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
+        form = await request.form()
+        try:
+            data = Register(
+                role_name=form.get("role_name"),
+                password=form.get("password"),
+                email=form.get("email")
+            )
+        except ValidationError as e:
+            return JSONResponse(status_code=422, content={"detail": e.errors()})
+    else:
+        return JSONResponse(status_code=415, content={"detail": "Unsupported Media Type"})
+
     register(data, db)
     result = login(data, db)
 
-    response.set_cookie(
-        key="access_token",
-        value=result.access_token
-    )
-    response.set_cookie(
-        key="refresh_token",
-        value=result.refresh_token
-    )
+    response.set_cookie(key="access_token", value=result.access_token)
+    response.set_cookie(key="refresh_token", value=result.refresh_token)
 
     return result
 
 
-@router.post("/auth/verify", response_model=dict)
+@router.post("/auth/verifyuser", response_model=dict)
 def verify_user_endpoint(data: VerifyUser, db: Session = Depends(get_db)):
     """Verify a user with email and code."""
     return verify_user(data, db)
@@ -406,28 +428,66 @@ def send_code_endpoint(data: SendCode, db: Session = Depends(get_db)):
     return send_code(data, db)
 
 
+from fastapi import Form
+
 @router.post("/auth/login", response_model=AuthResponse)
-def login_user(response: Response, data: Login, db: Session = Depends(get_db)):
-    """Log in a user and return tokens."""
+def login_user(
+    response: Response,
+    email: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    result = login(Login(email=email, password=password), db)
 
-    result = login(data, db)
-
-    response.set_cookie(
-        key="access_token",
-        value=result.access_token
-    )
-    response.set_cookie(
-        key="refresh_token",
-        value=result.refresh_token
-    )
+    response.set_cookie(key="access_token", value=result.access_token)
+    response.set_cookie(key="refresh_token", value=result.refresh_token)
 
     return result
 
 
+
+from fastapi import HTTPException, status
+from typing import Optional
+
 @router.post("/auth/check")
-def check_token_endpoint(access_token: str = Body(..., embed=True), db: Session = Depends(get_db)):
-    """Check if the access token is valid."""
-    return check_token(access_token, db)
+async def check_token_endpoint(
+    access_token: Optional[str] = Body(None),
+    cookie_token: Optional[str] = Cookie(None, alias="access_token"),
+    db: Session = Depends(get_db)
+):
+    """
+    Проверяет валидность токена. Принимает токен:
+    - В теле запроса (access_token)
+    - В куках (access_token)
+    
+    Если переданы оба токена, проверяет их оба и возвращает результат
+    для первого валидного.
+    """
+    
+    # Собираем все полученные токены (исключая None)
+    tokens = [token for token in [access_token, cookie_token] if token is not None]
+    
+    if not tokens:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Требуется токен: укажите access_token в теле запроса или куках"
+        )
+    
+    # Проверяем токены по порядку
+    for token in tokens:
+        try:
+            result = check_token(token, db)
+            # Если токен валиден, возвращаем результат
+            return result
+        except HTTPException:
+            # Пробуем следующий токен
+            continue
+    
+    # Если ни один токен не прошел проверку
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Все предоставленные токены недействительны"
+    )
 
 
 @router.get("/auth/refresh", response_model=dict)
